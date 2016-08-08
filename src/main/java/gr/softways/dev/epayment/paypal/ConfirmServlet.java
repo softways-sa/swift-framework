@@ -12,11 +12,18 @@ public class ConfirmServlet extends HttpServlet {
   
   private String _charset = null;
   
+  private String _databaseId = null;
+  
+  private static final boolean DEBUG = false;
+  private static final String CLASS_NAME = ConfirmServlet.class.getName();
+  
   public void init(ServletConfig config) throws ServletException {
     super.init(config);
     
     _charset = SwissKnife.jndiLookup("swconf/charset");
     if (_charset == null) _charset = SwissKnife.DEFAULT_CHARSET;
+    
+    _databaseId = SwissKnife.jndiLookup("swconf/databaseId");
   }
 
   //Process the HTTP Post request
@@ -29,11 +36,15 @@ public class ConfirmServlet extends HttpServlet {
     
     int rows = 0;
     
-    /**Enumeration <String>parameterNames = request.getParameterNames();
-    while (parameterNames.hasMoreElements()) {
-      String s = parameterNames.nextElement();
-      System.out.println(s + " = " + request.getParameter(s));
-    }**/
+    if (DEBUG) {
+      Enumeration<String> parameterNames = request.getParameterNames();
+      
+      System.out.println(CLASS_NAME + " incoming params");
+      while (parameterNames.hasMoreElements()) {
+        String s = parameterNames.nextElement();
+        System.out.println(s + " = " + request.getParameter(s));
+      }
+    }
     
     String[] configurationValues = Configuration.getValues(new String[] {"PayPalBusinessEmail","PayPalPostIPNVerifyURL"});
     
@@ -54,6 +65,9 @@ public class ConfirmServlet extends HttpServlet {
       }
       
       if (dbRet.getNoError() == 1 && "Completed".equals(payment_status)) {
+        helperBean = new SQLHelper2();
+        helperBean.initBean(_databaseId, request, response, this, null);
+        
         rows = helperBean.getSQL("SELECT * FROM EPayment WHERE PAYNT_Code = '" + SwissKnife.sqlEncode(merchantRef) + "'").getRetInt();
       
         if (rows == 1) {
@@ -70,6 +84,8 @@ public class ConfirmServlet extends HttpServlet {
           }
         }
         else dbRet.setNoError(0);
+        
+        helperBean.closeResources();
       }
     }
   }
@@ -90,7 +106,7 @@ public class ConfirmServlet extends HttpServlet {
       post.append("=");
       post.append(URLEncoder.encode("_notify-validate",enc));
       
-      Enumeration <String>parameterNames = request.getParameterNames();
+      Enumeration<String> parameterNames = request.getParameterNames();
       
       while (parameterNames.hasMoreElements()) {
         String s = parameterNames.nextElement();
@@ -101,7 +117,7 @@ public class ConfirmServlet extends HttpServlet {
         post.append(URLEncoder.encode(request.getParameter(s),enc));
       }
       
-      //System.out.println("post to IPN:" + post);
+      if (DEBUG) System.out.println(CLASS_NAME + " post to IPN:" + post);
 
       con = (HttpURLConnection)new URL(PayPalPostIPNVerifyURL).openConnection();
       con.setRequestMethod("POST");
@@ -120,6 +136,8 @@ public class ConfirmServlet extends HttpServlet {
       while((line = in.readLine()) != null) {
         result += line;
       }
+      
+      if (DEBUG) System.out.println(CLASS_NAME + " response back:" + result);
       
       if (result.startsWith("VERIFIED")) dbRet.setNoError(1);
       else dbRet.setNoError(1);
