@@ -1,45 +1,33 @@
 package gr.softways.dev.eshop.eways.v5;
 
 import java.io.*;
-import java.util.*;
-import java.sql.Timestamp;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import gr.softways.dev.jdbc.*;
 import gr.softways.dev.util.*;
 
 public class CustomerActionServlet extends HttpServlet {
-
-  private ServletContext _servletContext;
-  
-  private Director _director;
   
   private String _charset = null;
   
   private String _databaseId = null;
   
-  private static String _urlToCheckout = "/checkout_billing.jsp";
-  private static String _urlToShipping = "/checkout_shipping.jsp";
-  private static String _urlToBilling = "/checkout_billing.jsp";
-  private static String _urlToConfirm = "/checkout_confirm.jsp";
-  private static String _urlToMyAccount = "/customer_myaccount.jsp";
-  private static String _urlToSignin = "/customer_signin.jsp";
-  private static String _urlToForgotPassword = "/customer_forgot_password.jsp";
-  private static String _urlToProblem = "/problem.jsp";
+  private static final String BILLING_VIEW = "/checkout_billing.jsp";
+  private static final String SHIPPING_VIEW = "/checkout_shipping.jsp";
+  private static final String CONFIRM_VIEW = "/checkout_confirm.jsp";
+  private static final String MY_ACCOUNT_VIEW = "/customer_myaccount.jsp";
+  private static final String SIGNIN_VIEW = "/customer_signin.jsp";
+  private static final String FORGOT_PASSWORD_VIEW = "/customer_forgot_password.jsp";
+  private static final String ERROR_VIEW = "/problem.jsp";
   
   public void init(ServletConfig config) throws ServletException {
     super.init(config);
-    
-    _servletContext = config.getServletContext();
 
     _charset = SwissKnife.jndiLookup("swconf/charset");
     if (_charset == null) _charset = SwissKnife.DEFAULT_CHARSET;
     
     _databaseId = SwissKnife.jndiLookup("swconf/databaseId");
-    
-    _director = Director.getInstance();
   }
 
   public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -76,28 +64,28 @@ public class CustomerActionServlet extends HttpServlet {
     }
     
     if (dbRet.getNoError() == 0) {
-      requestDispatcher = request.getRequestDispatcher(_urlToSignin + "?target=" + target);
+      requestDispatcher = request.getRequestDispatcher(SIGNIN_VIEW + "?target=" + target);
     }
     else if (action.equals("create_account")) {
       dbRet = doCustomerRegister(request, response, customer);
       
       if (dbRet.getNoError() == 1) {
-        if (target.equals("checkout")) requestDispatcher = request.getRequestDispatcher(_urlToCheckout);
-        else requestDispatcher = request.getRequestDispatcher(_urlToMyAccount);
+        if (target.equals("checkout")) requestDispatcher = request.getRequestDispatcher(BILLING_VIEW);
+        else requestDispatcher = request.getRequestDispatcher(MY_ACCOUNT_VIEW);
       }
       else {
-        requestDispatcher = request.getRequestDispatcher(_urlToProblem);
+        requestDispatcher = request.getRequestDispatcher(ERROR_VIEW);
       }
     }
     else if (action.equals("signin")) {
       dbRet = doCustomerSignIn(request, response, customer);
       
       if (dbRet.getNoError() == 1) {
-        if (target.equals("checkout")) requestDispatcher = request.getRequestDispatcher(_urlToCheckout);
-        else requestDispatcher = request.getRequestDispatcher(_urlToMyAccount);
+        if (target.equals("checkout")) requestDispatcher = request.getRequestDispatcher(BILLING_VIEW);
+        else requestDispatcher = request.getRequestDispatcher(MY_ACCOUNT_VIEW);
       }
       else {
-        requestDispatcher = request.getRequestDispatcher(_urlToSignin + "?target=" + target + "&lt=" + lt);
+        requestDispatcher = request.getRequestDispatcher(SIGNIN_VIEW + "?target=" + target + "&lt=" + lt);
       }
     }
     else if (action.equals("retrieve_password")) {
@@ -106,39 +94,44 @@ public class CustomerActionServlet extends HttpServlet {
       if (dbRet.getNoError() == 0) request.setAttribute("retrieve_password", "no_such_email");
       else request.setAttribute("retrieve_password", "retrieve_password_ok");
       
-      requestDispatcher = request.getRequestDispatcher(_urlToForgotPassword);
+      requestDispatcher = request.getRequestDispatcher(FORGOT_PASSWORD_VIEW);
     }
     else if (action.equals("edit_info")) {
       dbRet = doCustomerUpdatePInfo(request, response, customer);
       
-      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(_urlToMyAccount);
-      else requestDispatcher = request.getRequestDispatcher(_urlToProblem);
+      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(MY_ACCOUNT_VIEW);
+      else requestDispatcher = request.getRequestDispatcher(ERROR_VIEW);
     }
     else if (action.equals("signout")) {
       dbRet = doCustomerSignOut(request, response, customer);
       
-      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(_urlToMyAccount);
-      else requestDispatcher = request.getRequestDispatcher(_urlToProblem);
+      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(MY_ACCOUNT_VIEW);
+      else requestDispatcher = request.getRequestDispatcher(ERROR_VIEW);
     }
     else if (action.equals("set_billing_address")) {
       dbRet = customer.doBillingAddress(request);
       
       String useBilling = request.getParameter("useBilling") == null ? "" : request.getParameter("useBilling");
       
-      if (dbRet.getNoError() == 0) requestDispatcher = request.getRequestDispatcher(_urlToBilling);
+      if (dbRet.getNoError() == 0) requestDispatcher = request.getRequestDispatcher(BILLING_VIEW);
       else {
-        if (useBilling.equals("1")) requestDispatcher = request.getRequestDispatcher(_urlToConfirm);
-        else requestDispatcher = request.getRequestDispatcher(_urlToShipping);
+        if (useBilling.equals("1")) requestDispatcher = request.getRequestDispatcher(CONFIRM_VIEW);
+        else requestDispatcher = request.getRequestDispatcher(SHIPPING_VIEW);
       }
     }
     else if (action.equals("set_shipping_address")) {
       dbRet = customer.doShippingAddress(request);
       
-      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(_urlToConfirm);
-      else requestDispatcher = request.getRequestDispatcher(_urlToBilling);
+      if (dbRet.getNoError() == 1) requestDispatcher = request.getRequestDispatcher(CONFIRM_VIEW);
+      else requestDispatcher = request.getRequestDispatcher(BILLING_VIEW);
+    }
+    else if (action.equals("guest_checkout")) {
+      customer.setGuestCheckout(true);
+      
+      requestDispatcher = request.getRequestDispatcher(BILLING_VIEW);
     }
     else {
-      requestDispatcher = request.getRequestDispatcher(_urlToSignin);
+      requestDispatcher = request.getRequestDispatcher(SIGNIN_VIEW);
     }
     
     requestDispatcher.forward(request, response);

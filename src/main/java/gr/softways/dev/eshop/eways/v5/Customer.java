@@ -94,10 +94,11 @@ public class Customer {
         resultSet = ps.executeQuery();
         
         if (resultSet.next() == true) {
-          // username & password pair valid
+          // valid username & password
           AuthEmp authEmp = new AuthEmp(username,password,resultSet.getInt("usrAccessLevel"),getDatabaseId());
           
           setCustomerId(resultSet.getString("customerId").trim());
+          setGuestCheckout(false);
           
           setCustLogCode(resultSet.getString("custLogCode").trim());
           
@@ -301,8 +302,8 @@ public class Customer {
       setShippingCountryCode(getBillingCountryCode());
     }
     
-    // store in-session customer info to database
-    if (dbRet.getNoError() == 1) doUpdatePInfo();
+    // store in-session customer info to database if not guest checkout
+    if (dbRet.getNoError() == 1 && !isGuestCheckout()) doUpdatePInfo();
     
     return dbRet;
   }
@@ -913,6 +914,7 @@ public class Customer {
     DbRet dbRet = new DbRet();
 
     setCustomerId("");
+    setGuestCheckout(false);
     setCustLogCode("");
     
     setFirstname("");
@@ -1688,6 +1690,14 @@ public class Customer {
     
     return _deliveryDate;
   }
+
+  public boolean isGuestCheckout() {
+    return guestCheckout;
+  }
+
+  public void setGuestCheckout(boolean guestCheckout) {
+    this.guestCheckout = guestCheckout;
+  }
   
   private BigDecimal _zero = new BigDecimal("0");
   
@@ -1775,4 +1785,6 @@ public class Customer {
   protected Timestamp _deliveryDate = null;
   
   protected String _ordPrefNotes = "";
+  
+  protected boolean guestCheckout = false;
 }
