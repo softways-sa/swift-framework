@@ -301,6 +301,8 @@ public class Order {
   public void resetOrder() {
     removeAllProducts();
     
+    _customer.setGuestCheckout(false);
+    
     setOrderId("");
     setOrdBankTran("");
     setOrderDate(null);
