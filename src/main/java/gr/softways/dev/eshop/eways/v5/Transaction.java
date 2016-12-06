@@ -1,13 +1,8 @@
 package gr.softways.dev.eshop.eways.v5;
 
-import java.io.*;
-import java.util.*;
 
 import java.math.*;
 import java.sql.*;
-
-import javax.servlet.*;
-import javax.servlet.http.*;
 
 import gr.softways.dev.jdbc.*;
 import gr.softways.dev.util.*;
@@ -15,7 +10,6 @@ import gr.softways.dev.util.*;
 import gr.softways.dev.eshop.eways.v2.Product;
 import gr.softways.dev.eshop.eways.v2.PrdPrice;
 import gr.softways.dev.eshop.eways.v2.TotalPrice;
-import gr.softways.dev.eshop.eways.v2.ProductAttribute;
 import gr.softways.dev.eshop.product.v2.ProductOptionsValue;
 
 /**
