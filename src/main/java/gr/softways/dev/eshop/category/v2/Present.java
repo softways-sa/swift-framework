@@ -367,7 +367,7 @@ public class Present extends JSPBean {
   public DbRet getCatPath(String catId, String orderBy) {
     DbRet dbRet = new DbRet();
     
-    if (catId.length() > 255) {
+    if (catId.length() > 254) {
       dbRet.setNoError(0);
 
       return dbRet;
@@ -401,26 +401,21 @@ public class Present extends JSPBean {
       }
     }
     
-    int prdIdsLength = catId.length()/2;
-    String[] prdIds = new String[prdIdsLength];
+    int prdIdsLength = catId.length() / 2;
     
+    StringBuilder query = new StringBuilder();
+    
+    query.append("SELECT * FROM prdCategory WHERE catId IN (");
     for (int i=0; i<prdIdsLength; i++) {
-      prdIds[i] = catId.substring(0, (i+1)*2);
+      query.append("'").append(SwissKnife.sqlEncode(catId.substring(0, (i+1)*2))).append("'");
+      if (i+1 < prdIdsLength) query.append(",");
     }
-
-    String clause = "";
+    query.append(")");
     
-    String query = "SELECT * FROM prdCategory WHERE (";
-    for (int i=0; i<prdIdsLength; i++) {
-      query += clause + " catId = '" + prdIds[i] + "'";
-      clause = " OR ";
-    }
-    query += ")";
-    
-    if (hasProtectedPrdCat == true) query += " AND (catCustomerType IS NULL OR catCustomerType = " + customerType + ")";
+    if (hasProtectedPrdCat == true) query.append(" AND (catCustomerType IS NULL OR catCustomerType = ").append(customerType).append(")");
 
     if (orderBy != null && orderBy.length()>0) {
-      query += " ORDER BY " + orderBy;
+      query.append(" ORDER BY ").append(orderBy);
     }
     
     //System.out.println(query);
@@ -434,7 +429,7 @@ public class Present extends JSPBean {
     try {
       if (queryDataSet.isOpen()) queryDataSet.close();
       
-      queryDataSet.setQuery(new QueryDescriptor(database,query,null,true,Load.ALL));
+      queryDataSet.setQuery(new QueryDescriptor(database,query.toString(),null,true,Load.ALL));
       
       queryDataSet.setMetaDataUpdate(MetaDataUpdate.NONE);
 
