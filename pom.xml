@@ -6,7 +6,7 @@
   <artifactId>swift-framework</artifactId>
   
   <packaging>jar</packaging>
-  <version>3.1.0</version>
+  <version>3.1.1</version>
   <name>swift-framework</name>
   
   <url>http://maven.apache.org</url>
