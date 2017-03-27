@@ -40,6 +40,8 @@ public class ExportXMLSizeServlet extends HttpServlet {
 
     HashMap<String, String> categoryTree;
     
+    String uriScheme;
+    
     String query = "SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,"
         + "product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,"
         + "product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*,ProductOptions.PO_Name"
@@ -54,6 +56,14 @@ public class ExportXMLSizeServlet extends HttpServlet {
         + " ORDER BY product.prdId";
     
     PrintWriter out = null;
+    
+    String[] configurationValues = Configuration.getValues(new String[] {"useSSL"});
+    if (configurationValues[0] != null && "1".equals(configurationValues[0])) {
+      uriScheme = "https://";
+    }
+    else {
+      uriScheme = "http://";
+    }
     
     Director director = Director.getInstance();
     
@@ -78,7 +88,7 @@ public class ExportXMLSizeServlet extends HttpServlet {
 
       queryDataSet.refresh();
       
-      dbRet = doExport(out, request, response, queryDataSet, categoryTree);
+      dbRet = doExport(out, request, response, queryDataSet, categoryTree, uriScheme);
     }
     finally {
       try { out.close(); } catch (Exception e) { e.printStackTrace(); }
@@ -92,14 +102,14 @@ public class ExportXMLSizeServlet extends HttpServlet {
   }
   
   private DbRet doExport(PrintWriter out, HttpServletRequest request, HttpServletResponse response, 
-      QueryDataSet queryDataSet, HashMap<String, String> categoryTree) {
+      QueryDataSet queryDataSet, HashMap<String, String> categoryTree, String uriScheme) {
     
     String prdId;
     String catId;
     
     DbRet dbRet = new DbRet();
     
-    String server = "http://" + request.getServerName() + "/";
+    String server = uriScheme + request.getServerName() + "/";
       
     out.println("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
     out.println("<webstore>");
