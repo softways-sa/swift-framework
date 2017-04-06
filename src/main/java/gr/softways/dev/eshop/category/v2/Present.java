@@ -367,7 +367,7 @@ public class Present extends JSPBean {
   public DbRet getCatPath(String catId, String orderBy) {
     DbRet dbRet = new DbRet();
     
-    if (catId.length() > 254) {
+    if (catId.length() < 2 || catId.length() > 254 || catId.length() % 2 > 0) {
       dbRet.setNoError(0);
 
       return dbRet;
