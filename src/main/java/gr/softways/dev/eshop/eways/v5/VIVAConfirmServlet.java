@@ -2,6 +2,7 @@ package gr.softways.dev.eshop.eways.v5;
 
 import gr.softways.dev.util.*;
 import java.io.*;
+import java.math.BigDecimal;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -14,6 +15,8 @@ public class VIVAConfirmServlet extends HttpServlet {
   private String _charset = null;
   
   private String _databaseId = null;
+  
+  private static final int curr1Scale = 2;
   
   public void init(ServletConfig config) throws ServletException {
     super.init(config);
@@ -38,6 +41,9 @@ public class VIVAConfirmServlet extends HttpServlet {
     
     DbRet dbRet = new DbRet();
     
+    BigDecimal totalAmount = BigDecimal.ZERO, totalShippingAmount = BigDecimal.ZERO,
+        totalTax = BigDecimal.ZERO;
+    
     String orderCode = request.getParameter("s"),
         tid = request.getParameter("t"),
         orderId = null;
@@ -51,10 +57,23 @@ public class VIVAConfirmServlet extends HttpServlet {
     SQLHelper2 helperBean = new SQLHelper2();
     helperBean.initBean(_databaseId, request, response, this, null);
     
-    rows = helperBean.getSQL("SELECT orderId FROM orders WHERE ordBankTran = '" + SwissKnife.sqlEncode(orderCode) + "' AND status = '" + gr.softways.dev.eshop.eways.v2.Order.STATUS_PENDING_PAYMENT + "'").getRetInt();
+    rows = helperBean.getSQL("SELECT orderId,valueEU,vatValEU,shippingValueEU,shippingVatValEU FROM orders WHERE ordBankTran = '" + SwissKnife.sqlEncode(orderCode) + "' AND status = '" + gr.softways.dev.eshop.eways.v2.Order.STATUS_PENDING_PAYMENT + "'").getRetInt();
     
-    orderId = helperBean.getColumn("orderId");
-        
+    if (rows == 1) {
+      orderId = helperBean.getColumn("orderId");
+      
+      BigDecimal valueEU  = helperBean.getBig("valueEU").setScale(curr1Scale, BigDecimal.ROUND_HALF_UP);
+      BigDecimal vatValEU = helperBean.getBig("vatValEU").setScale(curr1Scale, BigDecimal.ROUND_HALF_UP);
+      BigDecimal shippingValueEU = helperBean.getBig("shippingValueEU").setScale(curr1Scale, BigDecimal.ROUND_HALF_UP);
+      BigDecimal shippingVatValueEU = helperBean.getBig("shippingVatValEU").setScale(curr1Scale, BigDecimal.ROUND_HALF_UP);
+      
+      totalShippingAmount = shippingValueEU.add(shippingVatValueEU);
+      totalAmount = valueEU.add(vatValEU).add(totalShippingAmount);
+      totalTax = vatValEU.add(shippingVatValueEU);
+    }
+    
+    helperBean.closeResources();
+    
     if (rows == 1 && tid != null && tid.length() > 0) {
       
       dbRet = Transaction.updateBank(orderId, orderCode, gr.softways.dev.eshop.eways.v2.Order.STATUS_PENDING);
@@ -85,9 +104,12 @@ public class VIVAConfirmServlet extends HttpServlet {
       emailReport.sendAdminReport(orderId);
     }
     
-    helperBean.closeResources();
-    
     if (dbRet.getNoError() == 1) {
+      request.setAttribute(_databaseId + ".checkout.orderID", orderId);
+      request.setAttribute(_databaseId + ".checkout.totalAmount", totalAmount);
+      request.setAttribute(_databaseId + ".checkout.totalShippingAmount", totalShippingAmount);
+      request.setAttribute(_databaseId + ".checkout.totalTax", totalTax);
+      
       requestDispatcher = request.getRequestDispatcher("/proxypay_ok.jsp");
       requestDispatcher.forward(request, response);
     }

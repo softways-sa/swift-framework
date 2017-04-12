@@ -1,16 +1,9 @@
 package gr.softways.dev.eshop.eways.v5;
 
 import java.io.*;
-import java.util.*;
-import java.sql.Timestamp;
-import java.math.BigDecimal;
-
 import javax.servlet.*;
 import javax.servlet.http.*;
-
-import gr.softways.dev.jdbc.*;
 import gr.softways.dev.util.*;
-
 import gr.softways.dev.eshop.eways.v2.TotalPrice;
 
 public class PlaceOrderServlet extends HttpServlet {
@@ -153,6 +146,7 @@ public class PlaceOrderServlet extends HttpServlet {
     request.setAttribute(_databaseId + ".checkout.totalAmount", orderPrice.getGrossCurr1().add(shippingPrice.getGrossCurr1()));
     request.setAttribute(_databaseId + ".checkout.totalOrderAmount", orderPrice.getGrossCurr1());
     request.setAttribute(_databaseId + ".checkout.totalShippingAmount", shippingPrice.getGrossCurr1());
+    request.setAttribute(_databaseId + ".checkout.totalTax", orderPrice.getVATCurr1().add(shippingPrice.getVATCurr1()));
     
     request.setAttribute(_databaseId + ".checkout.customerEmail", customer.getEmail());
     request.setAttribute(_databaseId + ".checkout.ordPayWay", order.getOrdPayWay());
