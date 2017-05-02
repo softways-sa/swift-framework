@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class Facet {
   public int id;
+  public Integer displayOrder;
   public String name;
   
   public List<FacetValue> facetValues = new LinkedList<FacetValue>();

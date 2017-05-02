@@ -16,6 +16,18 @@ import org.apache.commons.lang3.StringUtils;
 
 public class Search3 extends SearchBean2 {
 
+  private boolean facetedSearch;
+  
+  private String facetsQuery = "";
+
+  public String getFacetsQuery() {
+    return facetsQuery;
+  }
+
+  public boolean isFacetedSearch() {
+    return facetedSearch;
+  }
+
   public Search3() {
     super("product");
   }
@@ -110,7 +122,14 @@ public class Search3 extends SearchBean2 {
     
     String inventoryType = gr.softways.dev.util.SwissKnife.jndiLookup("swconf/inventoryType");
     
-    String facets = request.getParameter("facets");
+    facetedSearch = false;
+    facetsQuery = request.getParameter("facets");
+    if (StringUtils.isNotBlank(facetsQuery)) {
+      facetedSearch = true;
+    }
+    else {
+      facetsQuery = "";
+    }
     
     StringBuilder selectColumns = new StringBuilder();
     selectColumns.append(" product.prdId");
@@ -127,7 +146,7 @@ public class Search3 extends SearchBean2 {
     
     from_clause.append(" FROM product LEFT JOIN prdInCatTab ON product.prdId = prdInCatTab.PINCPrdId LEFT JOIN prdCategory ON prdInCatTab.PINCCatId = prdCategory.catId LEFT JOIN VAT ON product.PRD_VAT_ID = VAT.VAT_ID");
     
-    if (facets != null) {
+    if (facetedSearch) {
       from_clause.append(" LEFT JOIN product_facet_val ON product_facet_val.product_id = product.prdId");
     }
     
@@ -178,7 +197,7 @@ public class Search3 extends SearchBean2 {
     }
     
     if (_catId.length()>0) {
-      from_clause.append(" AND prdInCatTab.PINCCatId LIKE '").append(SwissKnife.sqlEncode(_catId)).append("%'");
+      from_clause.append(" AND prdInCatTab.PINCCatId = '").append(SwissKnife.sqlEncode(_catId)).append("'");
     }
     else {
       from_clause.append(" AND prdInCatTab.PINCPrimary = '1'");
@@ -204,9 +223,9 @@ public class Search3 extends SearchBean2 {
       from_clause.append(" AND product.stockQua > 0");
     }
     
-    // add facets to query
-    if (StringUtils.isNotBlank(facets)) {
-      List<FacetValue> selectedFacetValues = FacetService.getFacetValuesFromQuery(facets);
+    // add facetsQuery to query
+    if (facetedSearch) {
+      List<FacetValue> selectedFacetValues = FacetService.getFacetValuesFromQuery(facetsQuery);
       String clause = "";
       from_clause.append(" AND (");
       for (FacetValue facetValue : selectedFacetValues) {
@@ -238,7 +257,12 @@ public class Search3 extends SearchBean2 {
   protected DbRet getQueryTotalRowCount(String query, Database database) {
     DbRet dbRet = new DbRet();
     
-    query = "SELECT SUM(totalRowCount2) AS totalRowCount FROM (SELECT COUNT(*) AS totalRowCount2 " + query + ")";
+    if (facetedSearch) {
+      query = "SELECT COUNT(*) AS totalRowCount FROM (SELECT COUNT(*) AS totalRowCount2 " + query + ")";
+    }
+    else {
+      query = "SELECT COUNT(*) AS totalRowCount " + query;
+    }
     
     QueryDataSet queryDataSet = null;
     
