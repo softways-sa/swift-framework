@@ -241,7 +241,7 @@ public class Search3 extends SearchBean2 {
       setSortedByOrder("");
     }
     
-    System.out.println(select_clause.toString() + " " + from_clause.toString() + " ORDER BY " + getSortedByCol() + " " + getSortedByOrder());
+    //System.out.println(select_clause.toString() + " " + from_clause.toString() + " ORDER BY " + getSortedByCol() + " " + getSortedByOrder());
     
     parseTable(select_clause.toString(), from_clause.toString());
     
