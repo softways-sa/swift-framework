@@ -129,7 +129,7 @@ public class ProductServlet2_3 extends HttpServlet {
 
     int auth = bean.auth(databaseId,authUsername,authPassword,"product",Director.AUTH_INSERT);
 
-     if (auth != Director.AUTH_OK) {
+    if (auth != Director.AUTH_OK) {
       dbRet.setAuthError(1);
       dbRet.setAuthErrorCode(auth);
       
@@ -137,7 +137,7 @@ public class ProductServlet2_3 extends HttpServlet {
       
       return dbRet;
     }
-    
+
     SimpleDateFormat fixedDateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
     String localeLanguage = multi.getParameter("localeLanguage"),
@@ -150,7 +150,6 @@ public class ProductServlet2_3 extends HttpServlet {
                inValCUR1 = _zero, inValCUR2 = _zero,
                outVal = _zero, outValEU = _zero,
                outValCUR1 = _zero, outValCUR2 = _zero;
-    
     String prdId = SwissKnife.sqlEncode(multi.getParameter("prdId")),
            prdId2 = SwissKnife.sqlEncode(multi.getParameter("prdId2")),
            name = SwissKnife.sqlEncode(multi.getParameter("name")),
@@ -927,28 +926,6 @@ public class ProductServlet2_3 extends HttpServlet {
       }
     }
 
-    /** stored procedures for product monthly */
-    
-    /**String procParams[] = new String[2], procParamDlm[] = new String[2];
-
-    int year = SwissKnife.getTDateInt(SwissKnife.currentDate(),"year");
-    procParams[0] = prdId;
-    procParamDlm[0] = "'";
-    procParams[1] = String.valueOf(year);
-    procParamDlm[1] = "";
-    if (dbRet.getNoError() == 1) {
-      dbRet = database.execProcedure("newPrdMonthly", procParams, procParamDlm);
-    }
-    year++;
-    procParams[0] = prdId;
-    procParamDlm[0] = "'";
-    procParams[1] = String.valueOf(year);
-    procParamDlm[1] = "";
-    
-    if (dbRet.getNoError() == 1) {
-      dbRet = database.execProcedure("newPrdMonthly", procParams, procParamDlm);
-    } **/
-    
     dbRet = database.commitTransaction(dbRet.getNoError(), prevTransIsolation);
     bean.freeDBConnection(databaseId,database);
     
@@ -967,7 +944,7 @@ public class ProductServlet2_3 extends HttpServlet {
 
     int auth = bean.auth(databaseId,authUsername,authPassword,"product",Director.AUTH_UPDATE);
 
-     if (auth != Director.AUTH_OK) {
+    if (auth != Director.AUTH_OK) {
       dbRet.setAuthError(1);
       dbRet.setAuthErrorCode(auth);
       
@@ -975,7 +952,7 @@ public class ProductServlet2_3 extends HttpServlet {
       
       return dbRet;
     }
-
+    
     SimpleDateFormat fixedDateFormat = new SimpleDateFormat("dd/MM/yyyy");
     
     String localeLanguage = multi.getParameter("localeLanguage"),
@@ -1279,6 +1256,9 @@ public class ProductServlet2_3 extends HttpServlet {
     
     Timestamp prdEntryDate = null;
     try { prdEntryDate = new Timestamp(fixedDateFormat.parse(multi.getParameter("prdEntryDate")).getTime()); } catch (Exception e) { prdEntryDate = null; }
+    
+    String[] facetValues = multi.getParameterValues("facet_val_id");
+    System.out.println("facetValues: " + Arrays.toString(facetValues));
     
     String[] imageOld = new String[]{img,img2,img3,img4},
 	  image = new String[]{img,img2,img3,img4},

@@ -158,11 +158,37 @@ public class MultiRequest {
    */
   public String getParameter(String name) {
     try {
-      String param = (String)parameters.get(name);
-      
-      //if (param.equals("")) return null;
-      
-      return param;
+      Vector values = (Vector)parameters.get(name);
+      if (values == null || values.size() == 0) {
+        return null;
+      }
+      String value = (String)values.elementAt(values.size() - 1);
+      return value;
+    }
+    catch (Exception e) {
+      return null;
+    }
+  }
+  
+  /**
+   * Returns the values of the named parameter as a String array, or null if 
+   * the parameter was not sent.  The array has one entry for each parameter 
+   * field sent.  If any field was sent without a value that entry is stored 
+   * in the array as a null.  The values are guaranteed to be in their 
+   * normal, decoded form.  A single value is returned as a one-element array.
+   *
+   * @param name the parameter name.
+   * @return the parameter values.
+   */
+  public String[] getParameterValues(String name) {
+    try {
+      Vector values = (Vector)parameters.get(name);
+      if (values == null || values.size() == 0) {
+        return null;
+      }
+      String[] valuesArray = new String[values.size()];
+      values.copyInto(valuesArray);
+      return valuesArray;
     }
     catch (Exception e) {
       return null;
@@ -575,7 +601,12 @@ public class MultiRequest {
     if (filename == null) {
       // This is a parameter
       String value = readParameter(in, boundary);
-      parameters.put(name, value);
+      Vector existingValues = (Vector)parameters.get(name);
+      if (existingValues == null) {
+        existingValues = new Vector();
+        parameters.put(name, existingValues);
+      }
+      existingValues.addElement(value);
     }
     else {
       // This is a file

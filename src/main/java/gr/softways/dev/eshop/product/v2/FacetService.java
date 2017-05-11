@@ -22,6 +22,168 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class FacetService {
   
+  public static List<Facet> getProductFacets(String prdId) {
+    List<Facet> facets = new ArrayList<Facet>();
+    
+    String databaseId = SwissKnife.jndiLookup("swconf/databaseId");
+    String lang = "";
+    
+    StringBuilder query = new StringBuilder();
+    
+    query.append("SELECT facet.id AS facet_id, facet.NAME").append(lang).append(" AS facet_name,");
+    query.append(" facet.display_order AS facet_order, facet_values.id AS val_id, facet_values.NAME").append(lang);
+    query.append(" AS val_name");
+    query.append(" FROM product_facet_val JOIN facet_values ON product_facet_val.facet_values_id = facet_values.id");
+    query.append(" JOIN facet ON facet.id = facet_values.FACET_ID");
+    query.append(" WHERE product_facet_val.product_id = '").append(SwissKnife.sqlEncode(prdId)).append("'");
+    query.append(" ORDER BY facet_values.NAME").append(lang);
+    
+    Director director = Director.getInstance();
+    
+    Database database = director.getDBConnection(databaseId);
+    QueryDataSet queryDataSet = null;
+    
+    DbRet dbRet = database.beginTransaction(Database.TRANS_ISO_SIMPLE);
+
+    int prevTransIsolation = dbRet.getRetInt();
+    
+    try {
+      queryDataSet = new QueryDataSet();
+      queryDataSet.setQuery(new QueryDescriptor(database, query.toString(), null, true, Load.UNCACHED));
+      queryDataSet.setMetaDataUpdate(MetaDataUpdate.NONE);
+      queryDataSet.refresh();
+      
+      Facet facet = null;
+      FacetValue facetValue = null;
+      
+      while (queryDataSet.inBounds() == true) {
+        facet = new Facet();
+        facet.id = queryDataSet.getInt("facet_id");
+        facet.name = queryDataSet.getString("facet_name");
+        facet.displayOrder = queryDataSet.getInt("facet_order");
+        
+        int idx = facets.indexOf(facet);
+        if (idx != -1) {
+          facet = facets.get(idx);
+        }
+        
+        facetValue = new FacetValue();
+        facetValue.id = queryDataSet.getInt("val_id");
+        facetValue.name = queryDataSet.getString("val_name");
+        facetValue.facet = facet;
+        facet.facetValues.add(facetValue);
+        
+        if (idx != -1) {
+          facets.set(idx, facet);
+        }
+        else {
+          facets.add(facet);
+        }
+         
+        queryDataSet.next();
+      }
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+    finally {
+      if (queryDataSet != null) queryDataSet.close();
+    }
+
+    database.commitTransaction(dbRet.getNoError(), prevTransIsolation);
+
+    director.freeDBConnection(databaseId, database);
+    
+    Collections.sort(facets, new Comparator<Facet>() {
+      @Override
+      public int compare(Facet o1, Facet o2) {
+        return o1.displayOrder.compareTo(o2.displayOrder);
+      }
+    });
+    
+    return facets;
+  }
+  
+  public static List<Facet> getAdminFacets() {
+    List<Facet> facets = new ArrayList<Facet>();
+    
+    String databaseId = SwissKnife.jndiLookup("swconf/databaseId");
+    String lang = "";
+    
+    StringBuilder query = new StringBuilder();
+    
+    query.append("SELECT facet.id AS facet_id, facet.NAME").append(lang).append(" AS facet_name,");
+    query.append(" facet.display_order AS facet_order, facet_values.id AS val_id, facet_values.NAME").append(lang);
+    query.append(" AS val_name");
+    query.append(" FROM facet_values JOIN facet ON facet.id = facet_values.FACET_ID");
+    query.append(" ORDER BY facet_values.NAME").append(lang);
+    
+    Director director = Director.getInstance();
+    
+    Database database = director.getDBConnection(databaseId);
+    QueryDataSet queryDataSet = null;
+    
+    DbRet dbRet = database.beginTransaction(Database.TRANS_ISO_SIMPLE);
+
+    int prevTransIsolation = dbRet.getRetInt();
+    
+    try {
+      queryDataSet = new QueryDataSet();
+      queryDataSet.setQuery(new QueryDescriptor(database, query.toString(), null, true, Load.UNCACHED));
+      queryDataSet.setMetaDataUpdate(MetaDataUpdate.NONE);
+      queryDataSet.refresh();
+      
+      Facet facet = null;
+      FacetValue facetValue = null;
+      
+      while (queryDataSet.inBounds() == true) {
+        facet = new Facet();
+        facet.id = queryDataSet.getInt("facet_id");
+        facet.name = queryDataSet.getString("facet_name");
+        facet.displayOrder = queryDataSet.getInt("facet_order");
+        
+        int idx = facets.indexOf(facet);
+        if (idx != -1) {
+          facet = facets.get(idx);
+        }
+        
+        facetValue = new FacetValue();
+        facetValue.id = queryDataSet.getInt("val_id");
+        facetValue.name = queryDataSet.getString("val_name");
+        facetValue.facet = facet;
+        facet.facetValues.add(facetValue);
+        
+        if (idx != -1) {
+          facets.set(idx, facet);
+        }
+        else {
+          facets.add(facet);
+        }
+         
+        queryDataSet.next();
+      }
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+    finally {
+      if (queryDataSet != null) queryDataSet.close();
+    }
+
+    database.commitTransaction(dbRet.getNoError(), prevTransIsolation);
+
+    director.freeDBConnection(databaseId, database);
+    
+    Collections.sort(facets, new Comparator<Facet>() {
+      @Override
+      public int compare(Facet o1, Facet o2) {
+        return o1.displayOrder.compareTo(o2.displayOrder);
+      }
+    });
+    
+    return facets;
+  }
+  
   public static List<Facet> getFacets(String categoryId, HttpServletRequest request) {
     if (categoryId == null) throw new RuntimeException();
     

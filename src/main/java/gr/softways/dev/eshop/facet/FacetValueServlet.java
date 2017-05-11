@@ -7,7 +7,7 @@ import javax.servlet.http.*;
 import gr.softways.dev.jdbc.*;
 import gr.softways.dev.util.*;
 
-public class FacetServlet extends HttpServlet {
+public class FacetValueServlet extends HttpServlet {
 
   private Director _director;
 
@@ -74,7 +74,7 @@ public class FacetServlet extends HttpServlet {
     String authUsername = SwissKnife.getSessionAttr(databaseId + ".authUsername", request),
         authPassword = SwissKnife.getSessionAttr(databaseId + ".authPassword", request);
 
-    int auth = _director.auth(databaseId, authUsername, authPassword, "facet", Director.AUTH_INSERT);
+    int auth = _director.auth(databaseId, authUsername, authPassword, "facet_values", Director.AUTH_INSERT);
 
     DbRet dbRet = new DbRet();
 
@@ -90,13 +90,13 @@ public class FacetServlet extends HttpServlet {
     String name = request.getParameter("name"),
         nameLG = request.getParameter("nameLG");
 
-    int display_order = 0;
-
+    int facet_id = 0;
     try {
-      display_order = Integer.parseInt(request.getParameter("display_order"));
+      facet_id = Integer.parseInt(request.getParameter("facet_id"));
     }
     catch (Exception e) {
-      display_order = 0;
+      dbRet.setNoError(0);
+      return dbRet;
     }
 
     if (name == null || name.length() == 0) {
@@ -111,16 +111,14 @@ public class FacetServlet extends HttpServlet {
     dbRet = database.beginTransaction(Database.TRANS_ISO_1);
     int prevTransIsolation = dbRet.getRetInt();
 
-    String query = "INSERT INTO facet (id,name,nameLG,display_order) VALUES (NEXT VALUE FOR facet_id_sequence,?,?,?)";
+    String query = "INSERT INTO facet_values (id,facet_id,name,nameLG) VALUES (NEXT VALUE FOR facet_values_id_sequence,?,?,?)";
 
     if (dbRet.getNoError() == 1) {
       try {
         ps = database.createPreparedStatement(query);
-
-        ps.setString(1, SwissKnife.sqlEncode(name));
-        ps.setString(2, SwissKnife.sqlEncode(nameLG));
-        ps.setInt(3, display_order);
-
+        ps.setInt(1, facet_id);
+        ps.setString(2, SwissKnife.sqlEncode(name));
+        ps.setString(3, SwissKnife.sqlEncode(nameLG));
         ps.executeUpdate();
       }
       catch (Exception e) {
@@ -149,7 +147,7 @@ public class FacetServlet extends HttpServlet {
     String authUsername = SwissKnife.getSessionAttr(databaseId + ".authUsername", request),
         authPassword = SwissKnife.getSessionAttr(databaseId + ".authPassword", request);
 
-    int auth = _director.auth(databaseId, authUsername, authPassword, "facet", Director.AUTH_DELETE);
+    int auth = _director.auth(databaseId, authUsername, authPassword, "facet_values", Director.AUTH_DELETE);
 
     DbRet dbRet = new DbRet();
 
@@ -163,7 +161,6 @@ public class FacetServlet extends HttpServlet {
     }
 
     int id = 0;
-
     try {
       id = Integer.parseInt(request.getParameter("id"));
     }
@@ -180,7 +177,7 @@ public class FacetServlet extends HttpServlet {
     String query = null;
 
     if (dbRet.getNoError() == 1) {
-      query = "DELETE FROM facet WHERE id = '" + id + "'";
+      query = "DELETE FROM facet_values WHERE id = '" + id + "'";
 
       dbRet = database.execQuery(query);
     }
@@ -195,7 +192,7 @@ public class FacetServlet extends HttpServlet {
     String authUsername = SwissKnife.getSessionAttr(databaseId + ".authUsername", request),
         authPassword = SwissKnife.getSessionAttr(databaseId + ".authPassword", request);
 
-    int auth = _director.auth(databaseId, authUsername, authPassword, "facet", Director.AUTH_UPDATE);
+    int auth = _director.auth(databaseId, authUsername, authPassword, "facet_values", Director.AUTH_UPDATE);
 
     DbRet dbRet = new DbRet();
 
@@ -211,17 +208,16 @@ public class FacetServlet extends HttpServlet {
     String name = request.getParameter("name"),
         nameLG = request.getParameter("nameLG");
 
-    int display_order = 0;
-
+    int facet_id = 0;
     try {
-      display_order = Integer.parseInt(request.getParameter("display_order"));
+      facet_id = Integer.parseInt(request.getParameter("facet_id"));
     }
     catch (Exception e) {
-      display_order = 0;
+      dbRet.setNoError(0);
+      return dbRet;
     }
 
     int id = 0;
-
     try {
       id = Integer.parseInt(request.getParameter("id"));
     }
@@ -242,17 +238,15 @@ public class FacetServlet extends HttpServlet {
     dbRet = database.beginTransaction(Database.TRANS_ISO_1);
     int prevTransIsolation = dbRet.getRetInt();
 
-    String query = "UPDATE facet SET name = ?, nameLG = ?, display_order = ? WHERE id = ?";
+    String query = "UPDATE facet_values SET facet_id = ?, name = ?, nameLG = ? WHERE id = ?";
 
     if (dbRet.getNoError() == 1) {
       try {
         ps = database.createPreparedStatement(query);
-
-        ps.setString(1, SwissKnife.sqlEncode(name));
-        ps.setString(2, SwissKnife.sqlEncode(nameLG));
-        ps.setInt(3, display_order);
+        ps.setInt(1, facet_id);
+        ps.setString(2, SwissKnife.sqlEncode(name));
+        ps.setString(3, SwissKnife.sqlEncode(nameLG));
         ps.setInt(4, id);
-
         ps.executeUpdate();
       }
       catch (Exception e) {
