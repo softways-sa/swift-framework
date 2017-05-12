@@ -150,6 +150,7 @@ public class ProductServlet2_3 extends HttpServlet {
                inValCUR1 = _zero, inValCUR2 = _zero,
                outVal = _zero, outValEU = _zero,
                outValCUR1 = _zero, outValCUR2 = _zero;
+    
     String prdId = SwissKnife.sqlEncode(multi.getParameter("prdId")),
            prdId2 = SwissKnife.sqlEncode(multi.getParameter("prdId2")),
            name = SwissKnife.sqlEncode(multi.getParameter("name")),
@@ -446,6 +447,10 @@ public class ProductServlet2_3 extends HttpServlet {
     
     Timestamp prdEntryDate = null;
     try { prdEntryDate = new Timestamp(fixedDateFormat.parse(multi.getParameter("prdEntryDate")).getTime()); } catch (Exception e) { prdEntryDate = null; }
+    
+    boolean hasFacets = (multi.getParameter("hasFacets") == null || !"true".equals(multi.getParameter("hasFacets"))) ? false : true;
+    
+    String[] facetValues = multi.getParameterValues("facet_val_id");
     
     String[] image = new String[]{"","","",""},
 	           imageUpload = new String[]{"","","",""};
@@ -916,6 +921,16 @@ public class ProductServlet2_3 extends HttpServlet {
         }
         
         ps.executeUpdate();
+        
+        if (hasFacets && facetValues != null) {
+          ps = database.createPreparedStatement("INSERT INTO product_facet_val (id, facet_values_id, product_id) VALUES (NEXT VALUE FOR product_facet_val_id_sequence, ?, ?)");
+
+          for (String facetValue : facetValues) {
+            ps.setInt(1, Integer.parseInt(facetValue));
+            ps.setString(2, prdId);
+            ps.executeUpdate();
+          }
+        }
       }
       catch (Exception e) {
         e.printStackTrace();
@@ -1257,8 +1272,9 @@ public class ProductServlet2_3 extends HttpServlet {
     Timestamp prdEntryDate = null;
     try { prdEntryDate = new Timestamp(fixedDateFormat.parse(multi.getParameter("prdEntryDate")).getTime()); } catch (Exception e) { prdEntryDate = null; }
     
+    boolean hasFacets = (multi.getParameter("hasFacets") == null || !"true".equals(multi.getParameter("hasFacets"))) ? false : true;
+    
     String[] facetValues = multi.getParameterValues("facet_val_id");
-    System.out.println("facetValues: " + Arrays.toString(facetValues));
     
     String[] imageOld = new String[]{img,img2,img3,img4},
 	  image = new String[]{img,img2,img3,img4},
@@ -1745,6 +1761,20 @@ public class ProductServlet2_3 extends HttpServlet {
         ps.setString(++colIndex, prdId);
 
         ps.executeUpdate();
+        
+        if (hasFacets) {
+          database.execQuery("DELETE FROM product_facet_val WHERE product_id = '" + prdId + "'");
+          
+          if (facetValues != null) {
+            ps = database.createPreparedStatement("INSERT INTO product_facet_val (id, facet_values_id, product_id) VALUES (NEXT VALUE FOR product_facet_val_id_sequence, ?, ?)");
+            
+            for (String facetValue : facetValues) {
+              ps.setInt(1, Integer.parseInt(facetValue));
+              ps.setString(2, prdId);
+              ps.executeUpdate();
+            }
+          }
+        }
       }
       catch (Exception e) {
         dbRet.setNoError(0);
