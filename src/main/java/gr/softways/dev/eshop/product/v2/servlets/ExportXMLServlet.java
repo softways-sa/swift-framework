@@ -8,9 +8,11 @@ import java.math.BigDecimal;
 import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import org.apache.commons.lang3.StringUtils;
 
 public class ExportXMLServlet extends HttpServlet {
 
+  @Override
   public void init(ServletConfig config) throws ServletException {
     super.init(config);
     
@@ -20,38 +22,49 @@ public class ExportXMLServlet extends HttpServlet {
     wwwrootPath = getServletContext().getRealPath("");
   }
 
+  @Override
   public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
     doPost(request,response);
   }
   
+  @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
     request.setCharacterEncoding(_charset);
     
-    DbRet dbRet = new DbRet();
+    DbRet dbRet;
 
-    HashMap<String, String> categoryTree = null;
+    HashMap<String, String> categoryTree;
     
     String uriScheme;
     
-    String query = "SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,"
-        + "product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,"
-        + "product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*"
-        + " FROM product "
-        + " JOIN prdInCatTab ON prdInCatTab.PINCPrdId = product.prdId"
-        + " JOIN prdCategory ON prdInCatTab.PINCCatId = prdCategory.catId"
-        + " JOIN VAT ON VAT.VAT_ID = product.PRD_VAT_ID"
-        + " WHERE prdHideFlag != '1'"
-        + " AND catShowFlag = '1'"
-        + " AND PINCPrimary = '1'";
+    StringBuilder query = new StringBuilder();
+    
+    query.append("SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,");
+    query.append("product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,");
+    query.append("product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*");
+    query.append(" FROM product");
+    query.append(" JOIN prdInCatTab ON prdInCatTab.PINCPrdId = product.prdId");
+    query.append(" JOIN prdCategory ON prdInCatTab.PINCCatId = prdCategory.catId");
+    query.append(" JOIN VAT ON VAT.VAT_ID = product.PRD_VAT_ID");
+    query.append(" WHERE prdHideFlag != '1'");
+    query.append(" AND catShowFlag = '1'");
+    query.append(" AND PINCPrimary = '1'");
     
     PrintWriter out = null;
     
-    String[] configurationValues = Configuration.getValues(new String[] {"useSSL"});
+    String[] configurationValues = Configuration.getValues(new String[] {"useSSL", "excludeFromProductsFeed"});
     if (configurationValues[0] != null && "1".equals(configurationValues[0])) {
       uriScheme = "https://";
     }
     else {
       uriScheme = "http://";
+    }
+    
+    if (StringUtils.isNotEmpty(configurationValues[1])) {
+      String[] tokens = configurationValues[1].split(",");
+      for (String cid : tokens) {
+         query.append(" AND prdInCatTab.PINCCatId NOT LIKE '").append(SwissKnife.sqlEncode(cid)).append("%'");
+      }
     }
     
     Director director = Director.getInstance();
@@ -72,21 +85,19 @@ public class ExportXMLServlet extends HttpServlet {
       
       queryDataSet = new QueryDataSet();
       
-      queryDataSet.setQuery(new QueryDescriptor(database,query,null,true,Load.UNCACHED));
+      queryDataSet.setQuery(new QueryDescriptor(database,query.toString(),null,true,Load.UNCACHED));
       queryDataSet.setMetaDataUpdate(MetaDataUpdate.NONE);
 
       queryDataSet.refresh();
       
-      dbRet = doExport(out, request, response, queryDataSet, categoryTree, uriScheme);
+      doExport(out, request, response, queryDataSet, categoryTree, uriScheme);
     }
     finally {
-      try { out.close(); } catch (Exception e) { e.printStackTrace(); }
-      
       if (queryDataSet != null) try { queryDataSet.close(); } catch (Exception e) { e.printStackTrace(); }
-      
       database.commitTransaction(1,prevTransIsolation);
-    
       director.freeDBConnection(databaseId,database);
+      
+      if (out != null) out.close();
     }
   }
   
