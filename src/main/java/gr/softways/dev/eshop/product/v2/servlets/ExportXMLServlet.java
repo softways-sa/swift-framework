@@ -39,6 +39,8 @@ public class ExportXMLServlet extends HttpServlet {
     
     StringBuilder query = new StringBuilder();
     
+    boolean useZoom = false;
+    
     query.append("SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,");
     query.append("product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,");
     query.append("product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*");
@@ -52,7 +54,7 @@ public class ExportXMLServlet extends HttpServlet {
     
     PrintWriter out = null;
     
-    String[] configurationValues = Configuration.getValues(new String[] {"useSSL", "excludeFromProductsFeed"});
+    String[] configurationValues = Configuration.getValues(new String[] {"useSSL", "excludeFromProductsFeed", "useZoomProductsFeed"});
     if (configurationValues[0] != null && "1".equals(configurationValues[0])) {
       uriScheme = "https://";
     }
@@ -65,6 +67,10 @@ public class ExportXMLServlet extends HttpServlet {
       for (String cid : tokens) {
          query.append(" AND prdInCatTab.PINCCatId NOT LIKE '").append(SwissKnife.sqlEncode(cid)).append("%'");
       }
+    }
+    
+    if ("1".equals(configurationValues[2])) {
+      useZoom = true;
     }
     
     Director director = Director.getInstance();
@@ -90,7 +96,7 @@ public class ExportXMLServlet extends HttpServlet {
 
       queryDataSet.refresh();
       
-      doExport(out, request, response, queryDataSet, categoryTree, uriScheme);
+      doExport(out, request, response, queryDataSet, categoryTree, uriScheme, useZoom);
     }
     finally {
       if (queryDataSet != null) try { queryDataSet.close(); } catch (Exception e) { e.printStackTrace(); }
@@ -102,7 +108,7 @@ public class ExportXMLServlet extends HttpServlet {
   }
   
   private DbRet doExport(PrintWriter out, HttpServletRequest request, HttpServletResponse response, 
-      QueryDataSet queryDataSet, HashMap<String, String> categoryTree, String uriScheme) {
+      QueryDataSet queryDataSet, HashMap<String, String> categoryTree, String uriScheme, boolean useZoom) {
     String catId = null;
     
     DbRet dbRet = new DbRet();
@@ -127,9 +133,10 @@ public class ExportXMLServlet extends HttpServlet {
 
       out.println("<link><![CDATA[" + server + "product_detail.jsp?prdId=" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + "]]></link>");
 
-      String prd_img = "";
-      if (SwissKnife.fileExists(wwwrootPath + "/prd_images/" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + "-1.jpg")) {
-        prd_img = "prd_images/" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + "-1.jpg";
+      String prd_img = "", postfix_prd_img = "-1.jpg";
+      if (useZoom) postfix_prd_img = "-1z.jpg";
+      if (SwissKnife.fileExists(wwwrootPath + "/prd_images/" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + postfix_prd_img)) {
+        prd_img = "prd_images/" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + postfix_prd_img;
 
         out.println("<image><![CDATA[" + server + prd_img + "]]></image>");
       }
