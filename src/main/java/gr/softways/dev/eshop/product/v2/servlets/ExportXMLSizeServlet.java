@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * XML feed that handles product options as 'SIZE' following
@@ -42,27 +43,42 @@ public class ExportXMLSizeServlet extends HttpServlet {
     
     String uriScheme;
     
-    String query = "SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,"
-        + "product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,"
-        + "product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*,ProductOptions.PO_Name"
-        + " FROM product "
-        + " LEFT JOIN ProductOptions ON ProductOptions.PO_prdId = product.prdId"
-        + " JOIN prdInCatTab ON prdInCatTab.PINCPrdId = product.prdId"
-        + " JOIN prdCategory ON prdInCatTab.PINCCatId = prdCategory.catId"
-        + " JOIN VAT ON VAT.VAT_ID = product.PRD_VAT_ID"
-        + " WHERE prdHideFlag != '1'"
-        + " AND catShowFlag = '1'"
-        + " AND PINCPrimary = '1'"
-        + " ORDER BY product.prdId";
+    StringBuilder query = new StringBuilder();
+    
+    boolean useZoom = false;
+    
+    query.append("SELECT product.prdId,product.prdHomePageLink,product.barcode,prdCategory.catId,product.name,product.img,product.hotdealFlag,");
+    query.append("product.retailPrcEU,product.hdRetailPrcEU,product.vatPct,product.hdBeginDate,product.hdEndDate,");
+    query.append("product.stockQua,product.prdAvailability,prdInCatTab.PINCCatId,VAT.*,ProductOptions.PO_Name");
+    query.append(" FROM product ");
+    query.append(" LEFT JOIN ProductOptions ON ProductOptions.PO_prdId = product.prdId");
+    query.append(" JOIN prdInCatTab ON prdInCatTab.PINCPrdId = product.prdId");
+    query.append(" JOIN prdCategory ON prdInCatTab.PINCCatId = prdCategory.catId");
+    query.append(" JOIN VAT ON VAT.VAT_ID = product.PRD_VAT_ID");
+    query.append(" WHERE prdHideFlag != '1'");
+    query.append(" AND catShowFlag = '1'");
+    query.append(" AND PINCPrimary = '1'");
+    query.append(" ORDER BY product.prdId");
     
     PrintWriter out = null;
     
-    String[] configurationValues = Configuration.getValues(new String[] {"useSSL"});
+    String[] configurationValues = Configuration.getValues(new String[] {"useSSL", "excludeFromProductsFeed", "useZoomProductsFeed"});
     if (configurationValues[0] != null && "1".equals(configurationValues[0])) {
       uriScheme = "https://";
     }
     else {
       uriScheme = "http://";
+    }
+    
+    if (StringUtils.isNotEmpty(configurationValues[1])) {
+      String[] tokens = configurationValues[1].split(",");
+      for (String cid : tokens) {
+         query.append(" AND prdInCatTab.PINCCatId NOT LIKE '").append(SwissKnife.sqlEncode(cid)).append("%'");
+      }
+    }
+    
+    if ("1".equals(configurationValues[2])) {
+      useZoom = true;
     }
     
     Director director = Director.getInstance();
@@ -83,12 +99,12 @@ public class ExportXMLSizeServlet extends HttpServlet {
       
       queryDataSet = new QueryDataSet();
       
-      queryDataSet.setQuery(new QueryDescriptor(database,query,null,true,Load.UNCACHED));
+      queryDataSet.setQuery(new QueryDescriptor(database,query.toString(),null,true,Load.UNCACHED));
       queryDataSet.setMetaDataUpdate(MetaDataUpdate.NONE);
 
       queryDataSet.refresh();
       
-      dbRet = doExport(out, request, response, queryDataSet, categoryTree, uriScheme);
+      dbRet = doExport(out, request, response, queryDataSet, categoryTree, uriScheme, useZoom);
     }
     finally {
       try { out.close(); } catch (Exception e) { e.printStackTrace(); }
@@ -102,7 +118,7 @@ public class ExportXMLSizeServlet extends HttpServlet {
   }
   
   private DbRet doExport(PrintWriter out, HttpServletRequest request, HttpServletResponse response, 
-      QueryDataSet queryDataSet, HashMap<String, String> categoryTree, String uriScheme) {
+      QueryDataSet queryDataSet, HashMap<String, String> categoryTree, String uriScheme, boolean useZoom) {
     
     String prdId;
     String catId;
@@ -130,9 +146,10 @@ public class ExportXMLSizeServlet extends HttpServlet {
 
       out.println("<link><![CDATA[" + server + "product_detail.jsp?prdId=" + SwissKnife.sqlDecode( queryDataSet.getString("prdId") ) + "]]></link>");
 
-      String prd_img = "";
+      String prd_img = "", postfix_prd_img = "-1.jpg";
+      if (useZoom) postfix_prd_img = "-1z.jpg";
       if (SwissKnife.fileExists(wwwrootPath + "/prd_images/" + SwissKnife.sqlDecode(prdId) + "-1.jpg")) {
-        prd_img = "prd_images/" + SwissKnife.sqlDecode(prdId) + "-1.jpg";
+        prd_img = "prd_images/" + SwissKnife.sqlDecode(prdId) + postfix_prd_img;
 
         out.println("<image><![CDATA[" + server + prd_img + "]]></image>");
       }
