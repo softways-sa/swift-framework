@@ -411,6 +411,8 @@ public class Order {
         // product allready exists
         product.setQuantity( product.getQuantity().add(quantity) );
       }
+      
+      product.setStockQua(prdManager.getBig("stockQua"));
     }
     
     prdManager.closeResources();

@@ -244,6 +244,18 @@ public class Product {
     this.fixedShipPrice = fixedShipPrice;
   }
   
+  public void setStockQua(BigDecimal stockQua) {
+    this.stockQua = stockQua;
+  }
+  
+  public BigDecimal getStockQua() {
+    return stockQua;
+  }
+  
+  public boolean hasSufficientStockQua() {
+    return getStockQua().compareTo(getQuantity()) >= 0;
+  }
+  
   private String _prdId = null;
   private String _name = null;
 
@@ -279,4 +291,7 @@ public class Product {
   private ProductOptionsValue _productOptionsValue = null;
   
   private boolean giftWrap = false;
+  
+  private BigDecimal stockQua = null;
+  private boolean sufficientStockQua = false;
 }
